@@ -8,6 +8,10 @@ readonly SECRET_KEY=knVH7CIYMV7T9TJZWEsYsTHFNoe3Sn15b1QQaFOq
 
 
 
+
+
+
+
 #===================================common functions===================================
 
 get_unixtime(){
@@ -39,11 +43,16 @@ safe_base64_encode_url(){
    	echo -n $safe_base64_url
 }
 
-
 safe_base64_decode_url(){
 	base64_url=$(echo -n $1 | sed -e 's\-\+\g' -e 's\_\/\g')
 	echo -n $(echo -n $base64_url | base64 -d)
 }
+
+url_encode(){
+	
+exit 1
+}
+
 
 generate_access_token(){
 	sign=$(printf $1 | openssl dgst -sha1 -binary -hmac $SECRET_KEY)
@@ -61,8 +70,40 @@ get_json_value(){
 	fi
 }
 
+delete_resource(){
+	bucket=$1
+	key=$2
+	safe_base64_url=$(safe_base64_encode_url "$bucket:$key")
+	access_token=$(generate_access_token "/delete/$safe_base64_url\n")
+	curl -s -H 'Content-Type: application/x-www-form-urlencoded' -H "Authorization:QBox $access_token" -X POST "http://rs.qiniu.com/delete/$safe_base64_url"
+}
+
+move_resource(){
+	src_bucket=$1
+	src_key=$2
+	dest_bucket=$3
+	dest_key=$4
+	src_safe_base64_url=$(safe_base64_encode_url "$src_bucket:$src_key")
+	dest_safe_base64_url=$(safe_base64_encode_url "$dest_bucket:$dest_key")
+	access_token=$(generate_access_token "/move/$src_safe_base64_url/$dest_safe_base64_url\n")
+	curl -s -H 'Content-Type: application/x-www-form-urlencoded' -H "Authorization:QBox $access_token" -X POST "http://rs.qiniu.com/move/$src_safe_base64_url/$dest_safe_base64_url"
+
+}
+
+
 
 get_resource_info(){
+
+	if [ "$#" -eq 1 ]
+	then
+		bucket="$1"
+		safe_base64_url=$(php /home/geek/classic_shell_scripting/qiniu_helper/helper.php $bucket)
+		echo $safe_base64_url
+		access_token=$(generate_access_token "/list?bucket=$safe_base64_url\n")
+		result=$(curl -s -H "Host:rsf.qbox.me" -H "Content-Type:application/x-www-form-urlencoded" -H "Authorization:QBox $access_token" -X POST "http://rsf.qbox.me/list?bucket=$safe_base64_url")
+		echo -n $result
+		return 1
+	fi
 	bucket=$1
 	key=$2
 	safe_base64_url=$(safe_base64_encode_url "$bucket:$key")
@@ -78,7 +119,13 @@ exit 1
 }
 #==================main()===========================
 
+
 get_resource_info "mytest" "config.txt"
 echo
 get_resource_info "mytest" "1.mp3"
 echo
+get_resource_info "mytest" 
+echo
+delete_resource "mytest" "config.txt"
+
+move_resource "mytest" "readme.txt" "mytest" "r.txt"
