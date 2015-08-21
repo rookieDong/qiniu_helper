@@ -5,6 +5,7 @@ version=1.0.0
 readonly http_head_content_type='Content-Type:application/x-www-form-urlencoded'
 readonly auth_common='Authorization:QBox'
 readonly CONFIG_FILE_LOCATION="./qiniu_helper.config"
+readonly DOMAIN_BUCKET_MAP_FILE_LOCATION="./domain_bucket_map_file"
 #====================================url==========================================
 #删除资源url
 readonly API_DELETE_RESOURCE__URL="http://rs.qiniu.com/delete/"
@@ -18,6 +19,7 @@ readonly API_STAT_RESOURCE_URL="http://rs.qiniu.com/stat/"
 readonly API_FETCH_RESOURCE_URL="http://iovip.qbox.me/fetch/"
 #===================================common functions===================================
 #保存或更改基本配置信息
+#配置文件基本格式为key=value格式,每个键值对一行
 save_config(){
 	if [  ! -e "$CONFIG_FILE_LOCATION" ];then
 		touch $CONFIG_FILE_LOCATION
@@ -31,12 +33,55 @@ save_config(){
 		echo "$tmp" > $CONFIG_FILE_LOCATION
 		if [ ! -z "$3" ];then
  			if cat $CONFIG_FILE_LOCATION | grep '^OPERATION_LOG_FILE=.*$' > /dev/null;then
-		     		tmp=$(cat $CONFIG_FILE_LOCATION | sed -e 's\^OPERATION_LOG_FILE=.*$\OPERATION_LOG_FILE='$3'\')
+		     		tmp=$(cat $CONFIG_FILE_LOCATION | sed 's\^OPERATION_LOG_FILE=.*$\OPERATION_LOG_FILE='$3'\')
                      		echo "$tmp" > $CONFIG_FILE_LOCATION
 			else
 		     		echo "OPERATION_LOG_FILE=$3" >> $CONFIG_FILE_LOCATION
 			fi
 		fi
+	fi
+}
+
+#显示配置信息
+show_config(){
+	if [  -e "$CONFIG_FILE_LOCATION" ];then
+		echo -e "ACCESS_KEY\tSECRET_KEY\tOPERATION_LOG_FILE_LOCATION"
+		
+		while IFS=\= read key value
+		do
+			echo -ne "$value\t\t"
+		done<$CONFIG_FILE_LOCATION
+	fi
+	echo
+}
+
+#配置空间域名映射文件,该文件在下载时需要使用
+#配置空间域名映射文件基本格式为key=value格式,每个键值对一行
+save_domain_bucket_map(){
+	if [ ! -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
+		touch $DOMAIN_BUCKET_MAP_FILE_LOCATION
+		echo "$1=$2" > $DOMAIN_BUCKET_MAP_FILE_LOCATION
+	else
+		if grep "^$1=.*$" $DOMAIN_BUCKET_MAP_FILE_LOCATION > /dev/null;then
+			tmp=$(sed 's\^'$1'=.*$\'$1'='$2'\' $DOMAIN_BUCKET_MAP_FILE_LOCATION)
+			echo "$tmp" > $DOMAIN_BUCKET_MAP_FILE_LOCATION
+		else 
+			echo "$1=$2" >> $DOMAIN_BUCKET_MAP_FILE_LOCATION
+		fi
+	fi	
+}
+
+#显示所有已经保存的空间域名映射关系
+show_remain_bucket_domain_map(){
+
+	if [ -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
+		echo -e "空间名字\t域名"
+		while IFS=\= read bucket domain
+		do
+			echo -e "$bucket\t\t$domain"
+		done < $DOMAIN_BUCKET_MAP_FILE_LOCATION
+	else
+		echo "未发现空间域名映射关系"
 	fi
 }
 
@@ -129,6 +174,10 @@ exit 1
 #==================main()===========================
 
 #move_resource "mytest" "r.txt" "mytest" "s.txt"
-copy_resource "mytest" "r.txt" "mytest" "b.txt"
+#copy_resource "mytest" "r.txt" "mytest" "b.txt"
 
 #save_config 1 23 dsdff 
+
+#save_domain_bucket_map '1mytest' '7xl8na.com1.z0.glb.clouddn.cm' 
+#show_remain_bucket_domain_map
+show_config
