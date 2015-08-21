@@ -164,7 +164,7 @@ exit 1
 }
 #==================main()===========================
 
-move_resource "mytest" "r.txt" "mytest" "s.txt"
-#copy_resource "mytest" "r.txt" "mytest" "b.txt"
+#move_resource "mytest" "r.txt" "mytest" "s.txt"
+copy_resource "mytest" "r.txt" "mytest" "b.txt"
 
-save_config 1 23 dsdff 
+#save_config 1 23 dsdff 
