@@ -4,8 +4,8 @@ readonly SECRET_KEY=knVH7CIYMV7T9TJZWEsYsTHFNoe3Sn15b1QQaFOq
 version=1.0.0
 readonly http_head_content_type='Content-Type:application/x-www-form-urlencoded'
 readonly auth_common='Authorization:QBox'
-readonly CONFIG_FILE_LOCATION="./qiniu_helper.config"
-readonly DOMAIN_BUCKET_MAP_FILE_LOCATION="./domain_bucket_map_file"
+readonly CONFIG_FILE_LOCATION="/tmp/.qiniu_helper.config"
+readonly DOMAIN_BUCKET_MAP_FILE_LOCATION="/tmp/.domain_bucket_map_file"
 #====================================url==========================================
 #删除资源url
 readonly API_DELETE_RESOURCE__URL="http://rs.qiniu.com/delete/"
@@ -82,6 +82,16 @@ show_remain_bucket_domain_map(){
 		done < $DOMAIN_BUCKET_MAP_FILE_LOCATION
 	else
 		echo "未发现空间域名映射关系"
+	fi
+}
+
+#删除所有配置信息
+clear_all_save(){
+	if [ "$1" = "我确定删除所有保存的信息" ];then
+		rm $DOMAIN_BUCKET_MAP_FILE_LOCATION $CONFIG_FILE_LOCATION
+		echo "已经删除所有配置信息"
+	else
+		echo "未操作成功"
 	fi
 }
 
