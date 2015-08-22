@@ -77,11 +77,11 @@ find_bucket_info(){
 	if [ -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
 		while IFS=\= read bucket domain is_public
 		do
-			if [ "bucket" = "$1" ];then
+			if [ "$bucket" = "$1" ];then
 				echo -n "$domain,$is_public"
 				break;
 			fi
-		done
+		done< $DOMAIN_BUCKET_MAP_FILE_LOCATION
 	fi
 	return 1	
 
@@ -177,9 +177,13 @@ copy_resource(){
 
 #下载资源
 download_resource(){
+	echo ok
 	download_location=${3:-/tmp}
-	$bucket_info=$(find_bucket_info $1)
-	echo $bucket_info | IFS=\= read domain is_public
+	bucket_info=$(find_bucket_info $1)
+	echo $bucket_info
+	domain=$(echo $bucket_info | cut -d, -f1)
+	is_public=$(echo $bucket_info | cut -d,f2)
+	echo $domain	
 	downloadurl="http://$domain/$2"
 	if [ "is_public" = "no" ];then
 	        deadline_time=$(($(get_unixtime)+$time_limit_seconds))
@@ -187,6 +191,7 @@ download_resource(){
 		access_token=$(generate_access_token $downloadurl)
 		downloadurl="$downloadurl&token=$access_token"
 	fi
+	echo $downloadurl
 	curl -# -s -o "$download_location/$2" $downloadurl 
 }
 
@@ -226,6 +231,4 @@ save_domain_bucket_map mytest 7xl8na.com1.z0.glb.clouddn.com
 save_domain_bucket_map test2 7xl9xf.com1.z0.glb.clouddn.com no
 show_remain_bucket_domain_map
 
-#download_resource mytest s.txt
-echo $(($(get_unixtime)+30))
-clear_all_save "我确定删除所有保存的信息" 
+download_resource mytest s.txt
