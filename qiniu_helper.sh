@@ -228,4 +228,4 @@ show_remain_bucket_domain_map
 
 #download_resource mytest s.txt
 echo $(($(get_unixtime)+30))
-
+clear_all_save "我确定删除所有保存的信息" 
