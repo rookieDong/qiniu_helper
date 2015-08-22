@@ -1,5 +1,5 @@
 #!/bin/bash
-readonly ACddCESS_KEY=gCS_AUyK7LgfEa9aYEn-O2acLXrL8cGpashfOdBQ
+readonly ACCESS_KEY=gCS_AUyK7LgfEa9aYEn-O2acLXrL8cGpashfOdBQ
 readonly SECRET_KEY=knVH7CIYMV7T9TJZWEsYsTHFNoe3Sn15b1QQaFOq
 version=1.0.0
 readonly http_head_content_type='Content-Type:application/x-www-form-urlencoded'
@@ -79,7 +79,7 @@ find_bucket_info(){
 		do
 			if [ "$bucket" = "$1" ];then
 				echo -n "$domain,$is_public"
-				break;
+				return 0
 			fi
 		done< $DOMAIN_BUCKET_MAP_FILE_LOCATION
 	fi
@@ -177,22 +177,22 @@ copy_resource(){
 
 #下载资源
 download_resource(){
-	echo ok
 	download_location=${3:-/tmp}
 	bucket_info=$(find_bucket_info $1)
-	echo $bucket_info
-	domain=$(echo $bucket_info | cut -d, -f1)
-	is_public=$(echo $bucket_info | cut -d,f2)
-	echo $domain	
+	if [ "$?" -eq 1  ];then
+		return 1
+	fi
+	domain=$(echo $bucket_info | cut -d,  -f1)
+	is_public=$(echo $bucket_info | cut -d, -f2)
 	downloadurl="http://$domain/$2"
-	if [ "is_public" = "no" ];then
+	if [ "$is_public" = "no" ];then
 	        deadline_time=$(($(get_unixtime)+$time_limit_seconds))
 		downloadurl="$downloadurl?e=$deadline_time"
 		access_token=$(generate_access_token $downloadurl)
 		downloadurl="$downloadurl&token=$access_token"
 	fi
-	echo $downloadurl
-	curl -# -s -o "$download_location/$2" $downloadurl 
+	curl -# -s -o "$download_location/$2" $downloadurl
+	return $? 
 }
 
 get_resource_info(){
@@ -226,9 +226,10 @@ exit 1
 
 #save_domain_bucket_map '1mytest' '7xl8na.com1.z0.glb.clouddn.cm' 
 #show_remain_bucket_domain_map
-save_config gCS_AUyK7LgfEa9aYEn-O2acLXrL8cGpashfOdBQ knVH7CIYMV7T9TJZWEsYsTHFNoe3Sn15b1QQaFOq
-save_domain_bucket_map mytest 7xl8na.com1.z0.glb.clouddn.com
-save_domain_bucket_map test2 7xl9xf.com1.z0.glb.clouddn.com no
-show_remain_bucket_domain_map
+#save_config gCS_AUyK7LgfEa9aYEn-O2acLXrL8cGpashfOdBQ knVH7CIYMV7T9TJZWEsYsTHFNoe3Sn15b1QQaFOq
+#save_domain_bucket_map mytest 7xl8na.com1.z0.glb.clouddn.com
+#save_domain_bucket_map test2 7xl9xf.com1.z0.glb.clouddn.com no
+#show_remain_bucket_domain_map
 
-download_resource mytest s.txt
+download_resource mytest s.txt ~/download
+download_resource test2 readme.txt ~/download
