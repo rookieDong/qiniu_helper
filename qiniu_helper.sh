@@ -6,6 +6,7 @@ readonly http_head_content_type='Content-Type:application/x-www-form-urlencoded'
 readonly auth_common='Authorization:QBox'
 readonly CONFIG_FILE_LOCATION="/tmp/.qiniu_helper.config"
 readonly DOMAIN_BUCKET_MAP_FILE_LOCATION="/tmp/.domain_bucket_map_file"
+readonly time_limit_seconds=30
 #====================================url==========================================
 #删除资源url
 readonly API_DELETE_RESOURCE__URL="http://rs.qiniu.com/delete/"
@@ -46,7 +47,6 @@ save_config(){
 show_config(){
 	if [  -e "$CONFIG_FILE_LOCATION" ];then
 		echo -e "ACCESS_KEY\tSECRET_KEY\tOPERATION_LOG_FILE_LOCATION"
-		
 		while IFS=\= read key value
 		do
 			echo -ne "$value\t\t"
@@ -58,27 +58,43 @@ show_config(){
 #配置空间域名映射文件,该文件在下载时需要使用
 #配置空间域名映射文件基本格式为key=value格式,每个键值对一行
 save_domain_bucket_map(){
+	is_public=${3:-yes}
 	if [ ! -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
 		touch $DOMAIN_BUCKET_MAP_FILE_LOCATION
-		echo "$1=$2" > $DOMAIN_BUCKET_MAP_FILE_LOCATION
+		echo "$1=$2=$is_public" > $DOMAIN_BUCKET_MAP_FILE_LOCATION
 	else
 		if grep "^$1=.*$" $DOMAIN_BUCKET_MAP_FILE_LOCATION > /dev/null;then
-			tmp=$(sed 's\^'$1'=.*$\'$1'='$2'\' $DOMAIN_BUCKET_MAP_FILE_LOCATION)
+			tmp=$(sed 's\^'$1'=.*$\'$1'='$2'='$is_public'\' $DOMAIN_BUCKET_MAP_FILE_LOCATION)
 			echo "$tmp" > $DOMAIN_BUCKET_MAP_FILE_LOCATION
 		else 
-			echo "$1=$2" >> $DOMAIN_BUCKET_MAP_FILE_LOCATION
+			echo "$1=$2=$is_public" >> $DOMAIN_BUCKET_MAP_FILE_LOCATION
 		fi
 	fi	
+}
+
+#查询某个空间的信息
+find_bucket_info(){
+	if [ -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
+		while IFS=\= read bucket domain is_public
+		do
+			if [ "bucket" = "$1" ];then
+				echo -n "$domain,$is_public"
+				break;
+			fi
+		done
+	fi
+	return 1	
+
 }
 
 #显示所有已经保存的空间域名映射关系
 show_remain_bucket_domain_map(){
 
 	if [ -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
-		echo -e "空间名字\t域名"
-		while IFS=\= read bucket domain
+		echo -e "空间名字\t域名\t\t\t\t\t是否公开"
+		while IFS=\= read bucket domain is_public
 		do
-			echo -e "$bucket\t\t$domain"
+			echo -e "$bucket\t\t$domain\t\t$is_public"
 		done < $DOMAIN_BUCKET_MAP_FILE_LOCATION
 	else
 		echo "未发现空间域名映射关系"
@@ -159,6 +175,21 @@ copy_resource(){
 	curl -s -H $http_head_content_type -H "$auth_common $access_token" -X POST "${API_COPY_RESOURCE_URL}${src_safe_base64_url}/${dest_safe_base64_url}"
 }
 
+#下载资源
+download_resource(){
+	download_location=${3:-/tmp}
+	$bucket_info=$(find_bucket_info $1)
+	echo $bucket_info | IFS=\= read domain is_public
+	downloadurl="http://$domain/$2"
+	if [ "is_public" = "no" ];then
+	        deadline_time=$(($(get_unixtime)+$time_limit_seconds))
+		downloadurl="$downloadurl?e=$deadline_time"
+		access_token=$(generate_access_token $downloadurl)
+		downloadurl="$downloadurl&token=$access_token"
+	fi
+	curl -# -s -o "$download_location/$2" $downloadurl 
+}
+
 get_resource_info(){
 	if [ "$#" -eq 1 ];then
 		bucket="$1"
@@ -190,4 +221,11 @@ exit 1
 
 #save_domain_bucket_map '1mytest' '7xl8na.com1.z0.glb.clouddn.cm' 
 #show_remain_bucket_domain_map
-show_config
+save_config gCS_AUyK7LgfEa9aYEn-O2acLXrL8cGpashfOdBQ knVH7CIYMV7T9TJZWEsYsTHFNoe3Sn15b1QQaFOq
+save_domain_bucket_map mytest 7xl8na.com1.z0.glb.clouddn.com
+save_domain_bucket_map test2 7xl9xf.com1.z0.glb.clouddn.com no
+show_remain_bucket_domain_map
+
+#download_resource mytest s.txt
+echo $(($(get_unixtime)+30))
+
