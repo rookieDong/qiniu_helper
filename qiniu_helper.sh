@@ -6,7 +6,9 @@ readonly http_head_content_type='Content-Type:application/x-www-form-urlencoded'
 readonly auth_common='Authorization:QBox'
 readonly CONFIG_FILE_LOCATION="/tmp/.qiniu_helper.config"
 readonly DOMAIN_BUCKET_MAP_FILE_LOCATION="/tmp/.domain_bucket_map_file"
-readonly time_limit_seconds=30
+readonly download_expires=30
+readonly upload_expires=300
+
 #====================================url==========================================
 #删除资源url
 readonly API_DELETE_RESOURCE__URL="http://rs.qiniu.com/delete/"
@@ -57,7 +59,13 @@ show_config(){
 
 #配置空间域名映射文件,该文件在下载时需要使用
 #配置空间域名映射文件基本格式为key=value格式,每个键值对一行
-save_domain_bucket_map(){
+manage_domain_bucket_map(){
+	if [ $# -eq 1 ] && grep "^$1=.*$" $DOMAIN_BUCKET_MAP_FILE_LOCATION > /dev/null;then
+                tmp=$(sed 's\^'$1'=.*$\\' $DOMAIN_BUCKET_MAP_FILE_LOCATION)
+                echo "$tmp" > $DOMAIN_BUCKET_MAP_FILE_LOCATION
+	elif [ $# -eq 1 ];then
+		return 0
+	fi	 
 	is_public=${3:-yes}
 	if [ ! -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
 		touch $DOMAIN_BUCKET_MAP_FILE_LOCATION
@@ -94,10 +102,15 @@ show_remain_bucket_domain_map(){
 		echo -e "空间名字\t域名\t\t\t\t\t是否公开"
 		while IFS=\= read bucket domain is_public
 		do
-			echo -e "$bucket\t\t$domain\t\t$is_public"
+			if [ ! -z "$1" ] && [ "$bucket" = "$1" ];then
+				echo -e "$bucket\t\t$domain\t\t$is_public"
+				break;
+			elif [ -z "$1" ];then
+				echo -e "$bucket\t\t$domain\t\t$is_public"
+			fi
 		done < $DOMAIN_BUCKET_MAP_FILE_LOCATION
 	else
-		echo "未发现空间域名映射关系"
+		echo "未发现空间域名映射关系文件"
 	fi
 }
 
@@ -146,6 +159,8 @@ generate_access_token(){
 	echo -n $ACCESS_KEY:$safe_base64_sign
 }
 
+
+
 get_json_value(){
 	data=$(echo -n $2 | sed -e 's\[{}]\\g')
 	if echo -n $data | grep "\"$1\"" > /dev/null;then
@@ -159,6 +174,7 @@ delete_resource(){
 	safe_base64_url=$(safe_base64_encode_url "$1:$2")
 	access_token=$(generate_access_token "/delete/$safe_base64_url\n")
 	curl -s -H $http_head_content_type -H "$auth_common $access_token" -X POST "${API_DELETE_RESOURCE__URL}${safe_base64_url}"
+	return $?
 }
 
 move_resource(){
@@ -166,6 +182,7 @@ move_resource(){
 	dest_safe_base64_url=$(safe_base64_encode_url "$3:$4")
 	access_token=$(generate_access_token "/move/$src_safe_base64_url/$dest_safe_base64_url\n")
 	curl -s -H $http_head_content_type -H "$auth_common $access_token" -X POST "${API_MOVE_RESOURCE_URL}${src_safe_base64_url}/${dest_safe_base64_url}"
+	return $?
 }
 
 copy_resource(){
@@ -173,6 +190,7 @@ copy_resource(){
         dest_safe_base64_url=$(safe_base64_encode_url "$3:$4")
 	access_token=$(generate_access_token "/copy/$src_safe_base64_url/$dest_safe_base64_url\n")
 	curl -s -H $http_head_content_type -H "$auth_common $access_token" -X POST "${API_COPY_RESOURCE_URL}${src_safe_base64_url}/${dest_safe_base64_url}"
+	return $?
 }
 
 #下载资源
@@ -193,6 +211,10 @@ download_resource(){
 	fi
 	curl -# -s -o "$download_location/$2" $downloadurl
 	return $? 
+}
+
+upload_resource(){
+exit 1	
 }
 
 get_resource_info(){
@@ -220,16 +242,20 @@ exit 1
 #==================main()===========================
 
 #move_resource "mytest" "r.txt" "mytest" "s.txt"
-#copy_resource "mytest" "r.txt" "mytest" "b.txt"
+#copy_resource "mytest" "s.txt" "mytest" "b.txt"
 
 #save_config 1 23 dsdff 
 
-#save_domain_bucket_map '1mytest' '7xl8na.com1.z0.glb.clouddn.cm' 
+#manage_domain_bucket_map '1mytest' '7xl8na.com1.z0.glb.clouddn.cm' 
 #show_remain_bucket_domain_map
 #save_config gCS_AUyK7LgfEa9aYEn-O2acLXrL8cGpashfOdBQ knVH7CIYMV7T9TJZWEsYsTHFNoe3Sn15b1QQaFOq
-#save_domain_bucket_map mytest 7xl8na.com1.z0.glb.clouddn.com
-#save_domain_bucket_map test2 7xl9xf.com1.z0.glb.clouddn.com no
+#manage_domain_bucket_map mytest 7xl8na.com1.z0.glb.clouddn.com
+#manage_domain_bucket_map test2 7xl9xf.com1.z0.glb.clouddn.com no
 #show_remain_bucket_domain_map
 
-download_resource mytest s.txt ~/download
-download_resource test2 readme.txt ~/download
+#download_resource mytest s.txt ~/download
+#download_resource test2 readme.txt ~/download
+#get_resource_info mytest s.txt
+show_remain_bucket_domain_map
+show_remain_bucket_domain_map mytest
+show_remain_bucket_domain_map test2
