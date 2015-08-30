@@ -162,12 +162,24 @@ generate_access_token(){
 
 
 get_json_value(){
-	data=$(echo -n $2 | sed -e 's\[{}]\\g')
-	if echo -n $data | grep "\"$1\"" > /dev/null;then
-		echo -n ok	
-	else
-		echo -n no
-	fi
+	data=$(echo -n $1 | sed -e 's\[{}]\\g' -e "s/:\ *\"/:\"/g" -e "s/\"\ *:/\":/g")
+	op=1
+	kv=$(echo -n $data | cut -d, -f$op)
+	while [ ! -z "$kv" ];do
+		k=$(echo -n $kv | cut -d: -f1 | sed -e "s/^\ *\"//g" -e "s/\"\ *$//g")
+		v=$(echo -n $kv | cut -d: -f2 | sed -e "s/^\ *\"//g" -e "s/\"\ *$//g")
+		op=$((op+1))
+		kv=$(echo -n $data | cut -d, -f$op)
+		if [ -n "$kvs" ];then
+			kvs="$k=$v,$kvs"
+		else
+			kvs="$k=$v"
+		fi
+		if echo -n $data | grep -v "," >/dev/null;then
+			break;
+		fi
+	done
+	echo -n $kvs
 }
 
 delete_resource(){
@@ -256,6 +268,9 @@ exit 1
 #download_resource mytest s.txt ~/download
 #download_resource test2 readme.txt ~/download
 #get_resource_info mytest s.txt
-show_remain_bucket_domain_map
-show_remain_bucket_domain_map mytest
-show_remain_bucket_domain_map test2
+#show_remain_bucket_domain_map
+#show_remain_bucket_domain_map mytest
+#show_remain_bucket_domain_map test2
+
+res=$(get_json_value '{"error":"errro","df ff":"dsd"')
+echo $res
