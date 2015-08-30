@@ -1,2 +1,4 @@
 # Qiniu Helper
-一个用于管理七牛云存储空间的shell脚本
+A Linux shell to manage Qiniu cloud storage
+###reference
++ [Qiniu Cloud Storage Office Website](http://www.qiniu.com/)
