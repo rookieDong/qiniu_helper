@@ -22,9 +22,11 @@ readonly API_STAT_RESOURCE_URL="http://rs.qiniu.com/stat/"
 readonly API_FETCH_RESOURCE_URL="http://iovip.qbox.me/fetch/"
 #===================================common functions===================================
 
+
+
 #测试环境
 testing_enviroment(){
-	which openssl > /dev/null && which curl > /dev/null && which php > /dev/null;
+	which openssl 1> /dev/null 2>&1 && which curl 1> /dev/null 2>&1 && which php 1> /dev/null 2>&1;
 }
 
 #保存或更改基本配置信息
