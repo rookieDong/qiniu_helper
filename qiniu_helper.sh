@@ -21,6 +21,12 @@ readonly API_STAT_RESOURCE_URL="http://rs.qiniu.com/stat/"
 #抓取资源信息url
 readonly API_FETCH_RESOURCE_URL="http://iovip.qbox.me/fetch/"
 #===================================common functions===================================
+
+#测试环境
+testing_enviroment(){
+	which openssl > /dev/null && which curl > /dev/null && which php > /dev/null;
+}
+
 #保存或更改基本配置信息
 #配置文件基本格式为key=value格式,每个键值对一行
 save_config(){
