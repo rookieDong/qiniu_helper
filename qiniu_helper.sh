@@ -20,13 +20,48 @@ readonly API_COPY_RESOURCE_URL="http://rs.qiniu.com/copy/"
 readonly API_STAT_RESOURCE_URL="http://rs.qiniu.com/stat/"
 #抓取资源信息url
 readonly API_FETCH_RESOURCE_URL="http://iovip.qbox.me/fetch/"
+#需要安装的软件
+readonly MUST_INSTALL_SOFTWARE=(openssl curl php)
 #===================================common functions===================================
 
 
 
 #测试环境
-testing_enviroment(){
-	which openssl 1> /dev/null 2>&1 && which curl 1> /dev/null 2>&1 && which php 1> /dev/null 2>&1;
+testing_enviroment(){    
+       for value in "${MUST_INSTALL_SOFTWARE[@]}";do
+	     	    which $value 1> /dev/null 2>&1;
+                    if [ "$?" -eq 1 ];then
+                            return 1;
+                    fi
+       done   
+}
+
+detect_enviroment_in_detail(){
+      if [ ! -e "$CONFIG_FILE_LOCATION" ];then
+               echo "Warning:config file does not exist";
+      fi
+      if [ ! -e "$DOMAIN_BUCKET_MAP_FILE_LOCATION" ];then
+               echo "Warning:domain bucket map file does not exist";
+      fi
+      for value in "${MUST_INSTALL_SOFTWARE[@]}";do
+            which $value 1> /dev/null 2>&1;
+                 if [ "$?" -eq 1 ];then
+			echo "Error:uninstall $value";
+		 fi
+     done
+}
+
+usage(){
+  echo "Qiniu Helper v$version"
+  echo "Dongjiaqiang - dongjiaqiang@outlook.com"
+  echo "Usage: $0 COMMAND [ PARAMETERS ]..."
+  echo "Commands:"
+  echo "help"
+  echo "config <accessKey> <secretKey> <operationLogFile>"
+  echo "clear <clearInfo>"
+  echo "move [sourceBucketName] [sourceFileName] [destBucketName] [destFileName]"
+  echo "copy [sourceBucketName] [sourceFileName] [destBucketName] [destFileName]"
+  
 }
 
 #保存或更改基本配置信息
@@ -279,6 +314,11 @@ exit 1
 #show_remain_bucket_domain_map
 #show_remain_bucket_domain_map mytest
 #show_remain_bucket_domain_map test2
-
+testing_enviroment
+usage
 res=$(get_json_value '{"error":"errro","df ff":"dsd"')
 echo $res
+testing_enviroment
+echo $?
+detect_enviroment_in_detail
+
